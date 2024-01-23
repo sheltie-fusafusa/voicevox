@@ -5,7 +5,10 @@
   >
     <div>
       <q-input
-        v-if="!disable"
+        v-if="
+          !disable &&
+          (valueLabel.visible || previewSlider.state.isPanning.value)
+        "
         dense
         borderless
         :model-value="
@@ -96,9 +99,6 @@ const changeValue = (newValue: number, type: MoraDataType = props.type) => {
   newValue = formatValue(newValue, props.min, props.max);
   return emit("changeValue", props.moraIndex, newValue, type);
 };
-// 参考用
-// const changeValue = (newValue: number, type: MoraDataType = props.type) =>
-//   emit("changeValue", props.moraIndex, newValue, type);
 
 const previewSlider = previewSliderHelper({
   modelValue: () => props.value,
@@ -113,6 +113,10 @@ const previewSlider = previewSliderHelper({
 });
 
 const valueLabel = reactive({
+  visible: false,
+});
+
+const inputForm = reactive({
   visible: false,
 });
 
@@ -134,6 +138,19 @@ const handleMouseHover = (isOver: boolean) => {
     emit("mouseOver", isOver, props.type, props.moraIndex);
   }
 };
+
+const handleBadgeClick = () => {
+  console.log("あああああ");
+  inputForm.visible = true;
+};
+
+const precisionComputed = computed(() => {
+  if (props.type == "pause" || props.type == "pitch") {
+    return 2;
+  } else {
+    return 3;
+  }
+});
 
 const formatValue = (
   value: number | null,
