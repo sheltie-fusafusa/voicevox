@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, ref, nextTick, onMounted, onUnmounted } from "vue";
+import { computed, watch, ref, nextTick } from "vue";
 import { QInput } from "quasar";
 import CharacterButton from "./CharacterButton.vue";
 import { MenuItemButton, MenuItemSeparator } from "./MenuBar.vue";
@@ -119,6 +119,10 @@ import { useStore } from "@/store";
 import { AudioKey, SplitTextWhenPasteType, Voice } from "@/type/preload";
 import { SelectionHelperForQInput } from "@/helpers/SelectionHelperForQInput";
 import { isOnCommandOrCtrlKeyDown } from "@/store/utility";
+import {
+  useShiftKey,
+  useCommandOrControlKey,
+} from "@/composables/useModifierKey";
 
 const props =
   defineProps<{
@@ -183,6 +187,10 @@ const onRootFocus = () => {
 
   selectAndSetActiveAudioKey();
 };
+
+const isShiftKeyDown = useShiftKey();
+const isCtrlOrCommandKeyDown = useCommandOrControlKey();
+
 // 複数選択：Ctrl（Cmd）またはShiftキーが押されている時のクリック処理
 const onClickWithModifierKey = (event: MouseEvent) => {
   if (uiLocked.value) return;
@@ -240,22 +248,6 @@ const onClickWithModifierKey = (event: MouseEvent) => {
     audioKeys: newSelectedAudioKeys,
   });
 };
-
-const isCtrlOrCommandKeyDown = ref(false);
-const isShiftKeyDown = ref(false);
-
-const keyEventListener = (e: KeyboardEvent) => {
-  isCtrlOrCommandKeyDown.value = isOnCommandOrCtrlKeyDown(e);
-  isShiftKeyDown.value = e.shiftKey;
-};
-onMounted(() => {
-  window.addEventListener("keydown", keyEventListener);
-  window.addEventListener("keyup", keyEventListener);
-});
-onUnmounted(() => {
-  window.removeEventListener("keydown", keyEventListener);
-  window.removeEventListener("keyup", keyEventListener);
-});
 
 const selectedVoice = computed<Voice | undefined>({
   get() {
@@ -575,7 +567,7 @@ const contextMenudata = ref<
   { type: "separator" },
   {
     type: "button",
-    label: "内容をテキストのみに適用",
+    label: "読みを変えずに適用",
     onClick: async () => {
       contextMenu.value?.hide();
       isChangeFlag.value = false;
@@ -684,7 +676,8 @@ const isMultipleEngine = computed(() => store.state.engineIds.length > 1);
     height: 2rem;
     width: v-bind(textLineNumberWidth);
     line-height: 2rem;
-    margin-right: -0.3rem;
+    margin-left: -0.1rem;
+    margin-right: -0.4rem;
     opacity: 0.6;
     text-align: right;
     color: colors.$display;

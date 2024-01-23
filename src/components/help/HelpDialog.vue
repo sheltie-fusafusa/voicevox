@@ -85,7 +85,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type Component } from "vue";
+import { computed, ref } from "vue";
+import type { Component } from "vue";
 import HelpPolicy from "./HelpPolicy.vue";
 import LibraryPolicy from "./LibraryPolicy.vue";
 import HowToUse from "./HowToUse.vue";
@@ -94,7 +95,7 @@ import UpdateInfo from "./UpdateInfo.vue";
 import OssCommunityInfo from "./OssCommunityInfo.vue";
 import QAndA from "./QAndA.vue";
 import ContactInfo from "./ContactInfo.vue";
-import { UpdateInfo as UpdateInfoObject } from "@/type/preload";
+import { UpdateInfo as UpdateInfoObject, UrlString } from "@/type/preload";
 import { useStore } from "@/store";
 import { useFetchNewUpdateInfos } from "@/composables/useFetchNewUpdateInfos";
 
@@ -131,11 +132,15 @@ const store = useStore();
 const updateInfos = ref<UpdateInfoObject[]>();
 store.dispatch("GET_UPDATE_INFOS").then((obj) => (updateInfos.value = obj));
 
-const { isCheckingFinished, latestVersion } = useFetchNewUpdateInfos();
-
-const isUpdateAvailable = computed(() => {
-  return isCheckingFinished.value && latestVersion.value !== "";
-});
+if (!import.meta.env.VITE_LATEST_UPDATE_INFOS_URL) {
+  throw new Error(
+    "環境変数VITE_LATEST_UPDATE_INFOS_URLが設定されていません。.envに記載してください。"
+  );
+}
+const newUpdateResult = useFetchNewUpdateInfos(
+  () => window.electron.getAppInfos().then((obj) => obj.version), // アプリのバージョン
+  UrlString(import.meta.env.VITE_LATEST_UPDATE_INFOS_URL)
+);
 
 // エディタのOSSライセンス取得
 const licenses = ref<Record<string, string>[]>();
@@ -184,8 +189,15 @@ const pagedata = computed(() => {
       props: {
         downloadLink: import.meta.env.VITE_OFFICIAL_WEBSITE_URL,
         updateInfos: updateInfos.value,
-        isUpdateAvailable: isUpdateAvailable.value,
-        latestVersion: latestVersion.value,
+        ...(newUpdateResult.value.status == "updateAvailable"
+          ? {
+              isUpdateAvailable: true,
+              latestVersion: newUpdateResult.value.latestVersion,
+            }
+          : {
+              isUpdateAvailable: false,
+              latestVersion: undefined,
+            }),
       },
     },
     {
